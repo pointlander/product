@@ -135,4 +135,13 @@ func main() {
 	for i := range data {
 		fmt.Println(clusters[i], data[i].Label)
 	}
+	a := make(map[string][3]int)
+	for i := range vectors {
+		histogram := a[data[i].Label]
+		histogram[clusters[i]]++
+		a[data[i].Label] = histogram
+	}
+	for k, v := range a {
+		fmt.Println(k, v)
+	}
 }
