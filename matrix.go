@@ -115,6 +115,17 @@ func (m Matrix[T]) MulT(n Matrix[T]) Matrix[T] {
 	return o
 }
 
+func (m Matrix[T]) Tensor(n Matrix[T]) Matrix[T] {
+	rows, cols := m.Cols, n.Cols
+	output := NewMatrix(cols, rows, make([]T, cols*rows)...)
+	for i := range rows {
+		for ii := range cols {
+			output.Data[i*cols+ii] = m.Data[i] * n.Data[ii]
+		}
+	}
+	return output
+}
+
 // Add adds two float64 matrices
 func (m Matrix[T]) Add(n Matrix[T]) Matrix[T] {
 	lena, lenb := len(m.Data), len(n.Data)
