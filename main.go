@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+
+	"github.com/pointlander/product/kmeans"
 )
 
 //go:embed iris.zip
@@ -91,11 +93,46 @@ func Load() []Fisher {
 
 func main() {
 	data := Load()
-	column := NewMatrix(len(data), 1, make([]float64, len(data))...)
-	for i := range data {
-		column.Data[i] = data[i].Measures[0]
+	vectors := make([][]float64, len(data))
+	for i := range vectors {
+		vectors[i] = make([]float64, 4)
 	}
-	tensor := column.Tensor(column)
-	ranks := PageRank(1.0, 8, 1, tensor)
-	fmt.Println(ranks)
+	for i := range 4 {
+		column := NewMatrix(len(data), 1, make([]float64, len(data))...)
+		for ii := range data {
+			column.Data[ii] = data[ii].Measures[i]
+		}
+		tensor := column.Tensor(column)
+		ranks := PageRank(1.0, 8, 1, tensor)
+		fmt.Println(ranks)
+		for ii, value := range ranks.Data {
+			vectors[ii][i] = value
+		}
+	}
+	meta := make([][]float64, len(vectors))
+	for i := range meta {
+		meta[i] = make([]float64, len(vectors))
+	}
+	const k = 3
+	for i := 0; i < 33; i++ {
+		clusters, _, err := kmeans.Kmeans(int64(i+1), vectors, k, kmeans.SquaredEuclideanDistance, -1)
+		if err != nil {
+			panic(err)
+		}
+		for i := 0; i < len(meta); i++ {
+			target := clusters[i]
+			for j, v := range clusters {
+				if v == target {
+					meta[i][j]++
+				}
+			}
+		}
+	}
+	clusters, _, err := kmeans.Kmeans(1, meta, 3, kmeans.SquaredEuclideanDistance, -1)
+	if err != nil {
+		panic(err)
+	}
+	for i := range data {
+		fmt.Println(clusters[i], data[i].Label)
+	}
 }
