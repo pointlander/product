@@ -95,18 +95,20 @@ func main() {
 	data := Load()
 	vectors := make([][]float64, len(data))
 	for i := range vectors {
-		vectors[i] = make([]float64, 4)
+		vectors[i] = make([]float64, 4*4)
 	}
 	for i := range 4 {
-		column := NewMatrix(len(data), 1, make([]float64, len(data))...)
-		for ii := range data {
-			column.Data[ii] = data[ii].Measures[i]
-		}
-		tensor := column.Tensor(column)
-		ranks := PageRank(1.0, 8, 1, tensor)
-		fmt.Println(ranks)
-		for ii, value := range ranks.Data {
-			vectors[ii][i] = value
+		for ii := range 4 {
+			column := NewMatrix(len(data), 1, make([]float64, len(data))...)
+			for iii := range data {
+				column.Data[iii] = data[iii].Measures[i] * data[iii].Measures[ii]
+			}
+			tensor := column.Tensor(column)
+			ranks := PageRank(1.0, 1024, 1, tensor)
+			fmt.Println(ranks)
+			for iii, value := range ranks.Data {
+				vectors[iii][i*4+ii] = value
+			}
 		}
 	}
 	meta := make([][]float64, len(vectors))
