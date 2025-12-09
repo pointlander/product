@@ -110,6 +110,7 @@ func main() {
 	for i := range vectors {
 		vectors[i] = make([]float64, 4)
 	}
+	results := make([][]float64, 4)
 	for i := range 4 {
 		column := NewMatrix(len(data), 1, make([]float64, len(data))...)
 		for ii := range data {
@@ -117,6 +118,7 @@ func main() {
 		}
 		tensor := column.Tensor(column)
 		ranks := PageRank(1.0, 16, 1, tensor)
+		results[i] = ranks.Data
 		fmt.Println(ranks)
 		for ii, value := range ranks.Data {
 			vectors[ii][i] = value
@@ -160,25 +162,32 @@ func main() {
 
 	{
 		average := make([]float64, len(vectors))
-		for i := range vectors {
-			for _, value := range vectors[i] {
-				average[i] += value
+		for _, result := range results {
+			for ii, value := range result {
+				average[ii] += value
 			}
 		}
 		for i := range average {
-			average[i] /= 4
+			average[i] /= float64(len(results))
 		}
 
 		cov := make([][]float64, len(vectors))
 		for i := range cov {
 			cov[i] = make([]float64, len(vectors))
 		}
-		for i := range vectors {
-			for ii := range vectors {
-				for iii := range 4 {
-					diff1 := average[i] - vectors[i][iii]
-					diff2 := average[ii] - vectors[ii][iii]
+		for _, measures := range results {
+			for i, v := range measures {
+				for ii, vv := range measures {
+					diff1 := average[i] - v
+					diff2 := average[ii] - vv
 					cov[i][ii] += diff1 * diff2
+				}
+			}
+		}
+		if len(results) > 0 {
+			for i := range cov {
+				for ii := range cov[i] {
+					cov[i][ii] = cov[i][ii] / float64(len(results))
 				}
 			}
 		}
