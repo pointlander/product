@@ -93,22 +93,33 @@ func Load() []Fisher {
 
 func main() {
 	data := Load()
+	products := make([][]float64, len(data))
+	for i := range products {
+		column := NewMatrix(4, 1, make([]float64, 4)...)
+		for ii := range data[i].Measures {
+			column.Data[ii] = data[i].Measures[ii]
+		}
+		tensor := column.Tensor(column)
+		ranks := PageRank(1.0, 1024, 1, tensor)
+		products[i] = ranks.Data
+	}
+	for i := range products {
+		fmt.Println(products[i])
+	}
 	vectors := make([][]float64, len(data))
 	for i := range vectors {
-		vectors[i] = make([]float64, 4*4)
+		vectors[i] = make([]float64, 4)
 	}
 	for i := range 4 {
-		for ii := range 4 {
-			column := NewMatrix(len(data), 1, make([]float64, len(data))...)
-			for iii := range data {
-				column.Data[iii] = data[iii].Measures[i] * data[iii].Measures[ii]
-			}
-			tensor := column.Tensor(column)
-			ranks := PageRank(1.0, 1024, 1, tensor)
-			fmt.Println(ranks)
-			for iii, value := range ranks.Data {
-				vectors[iii][i*4+ii] = value
-			}
+		column := NewMatrix(len(data), 1, make([]float64, len(data))...)
+		for ii := range data {
+			column.Data[ii] = products[ii][i]
+		}
+		tensor := column.Tensor(column)
+		ranks := PageRank(1.0, 16, 1, tensor)
+		fmt.Println(ranks)
+		for ii, value := range ranks.Data {
+			vectors[ii][i] = value
 		}
 	}
 	meta := make([][]float64, len(vectors))

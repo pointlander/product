@@ -117,6 +117,9 @@ func (m Matrix[T]) MulT(n Matrix[T]) Matrix[T] {
 
 func (m Matrix[T]) Tensor(n Matrix[T]) Matrix[T] {
 	rows, cols := m.Cols, n.Cols
+	if m.Rows != 1 || n.Rows != 1 {
+		panic("number of rows should be 1")
+	}
 	output := NewMatrix(cols, rows, make([]T, cols*rows)...)
 	for i := range rows {
 		for ii := range cols {
@@ -572,12 +575,12 @@ func PageRank[T Float](a float32, e int, seed uint32, adj Matrix[T]) Matrix[T] {
 			adj.Data[i*adj.Cols+ii] /= sum
 		}
 	}
-	rng := RNG(seed)
 	counts := make([]int64, adj.Cols)
 	iterations := adj.Rows * adj.Cols
 	done := make(chan bool, 8)
 	process := func(seed uint32) {
-		rng, node := RNG(seed), rng.Intn(adj.Cols)
+		rng := RNG(seed)
+		node := rng.Intn(adj.Cols)
 		for range iterations {
 			if rng.Float32() > a {
 				node = rng.Intn(adj.Cols)
@@ -609,6 +612,7 @@ func PageRank[T Float](a float32, e int, seed uint32, adj Matrix[T]) Matrix[T] {
 		done <- true
 	}
 
+	rng := RNG(seed)
 	index, flights, cpus := 0, 0, runtime.NumCPU()
 	for index < e && flights < cpus {
 		go process(rng.Next())
