@@ -157,4 +157,66 @@ func main() {
 	for k, v := range a {
 		fmt.Println(k, v)
 	}
+
+	{
+		average := make([]float64, len(vectors))
+		for i := range vectors {
+			for _, value := range vectors[i] {
+				average[i] += value
+			}
+		}
+		for i := range average {
+			average[i] /= 4
+		}
+
+		cov := make([][]float64, len(vectors))
+		for i := range cov {
+			cov[i] = make([]float64, len(vectors))
+		}
+		for i := range vectors {
+			for ii := range vectors {
+				for iii := range 4 {
+					diff1 := average[i] - vectors[i][iii]
+					diff2 := average[ii] - vectors[ii][iii]
+					cov[i][ii] += diff1 * diff2
+				}
+			}
+		}
+
+		meta := make([][]float64, len(vectors))
+		for i := range meta {
+			meta[i] = make([]float64, len(vectors))
+		}
+		const k = 3
+		for i := 0; i < 33; i++ {
+			clusters, _, err := kmeans.Kmeans(int64(i+1), cov, k, kmeans.SquaredEuclideanDistance, -1)
+			if err != nil {
+				panic(err)
+			}
+			for i := 0; i < len(meta); i++ {
+				target := clusters[i]
+				for j, v := range clusters {
+					if v == target {
+						meta[i][j]++
+					}
+				}
+			}
+		}
+		clusters, _, err := kmeans.Kmeans(1, meta, 3, kmeans.SquaredEuclideanDistance, -1)
+		if err != nil {
+			panic(err)
+		}
+		for i := range data {
+			fmt.Println(clusters[i], data[i].Label)
+		}
+		a := make(map[string][3]int)
+		for i := range vectors {
+			histogram := a[data[i].Label]
+			histogram[clusters[i]]++
+			a[data[i].Label] = histogram
+		}
+		for k, v := range a {
+			fmt.Println(k, v)
+		}
+	}
 }
