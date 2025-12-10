@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math/rand"
 	"strconv"
 
 	"github.com/pointlander/product/kmeans"
@@ -243,5 +244,45 @@ func main() {
 	if *FlagCluster {
 		ClusterMode()
 		return
+	}
+
+	rng := rand.New(rand.NewSource(1))
+	verse := make([][]int64, 64)
+	for i := range verse {
+		row := make([]int64, 64)
+		for ii := range row {
+			row[ii] = int64(rng.Intn(256))
+		}
+		verse[i] = row
+		fmt.Println(row)
+	}
+	fmt.Println()
+
+	x, y := 0, 0
+	for range 1024 {
+		xs, ys, tensor, index := make([]int, 9), make([]int, 9), NewMatrix(9, 1, make([]float64, 9)...), 0
+		for i := -1; i <= 1; i++ {
+			for ii := -1; i <= 1; i++ {
+				xs[index] = (x + i + 64) % 64
+				ys[index] = (y + ii + 64) % 64
+				tensor.Data[index] = float64(verse[xs[index]][ys[index]])
+				index++
+			}
+		}
+		adjacency := tensor.Tensor(tensor)
+		ranks := PageRank(1.0, 16, 1, adjacency)
+		total, selected := 0.0, rng.Float64()
+		for i, value := range ranks.Data {
+			total += value
+			if selected < value {
+				x, y = xs[i], ys[i]
+				verse[y][x]++
+				break
+			}
+		}
+	}
+
+	for i := range verse {
+		fmt.Println(verse[i])
 	}
 }
