@@ -11,8 +11,12 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"image"
+	"image/color"
+	"image/gif"
 	"io"
 	"math/rand"
+	"os"
 	"strconv"
 
 	"github.com/pointlander/product/kmeans"
@@ -246,8 +250,45 @@ func main() {
 		return
 	}
 
+	const (
+		Iterations = 128
+		Scale      = 64
+	)
+
 	rng := rand.New(rand.NewSource(1))
-	verse := make([][]int64, 64)
+	verse := make([][]int64, Scale)
+	images := &gif.GIF{}
+	var palette = []color.Color{}
+	for i := range 256 {
+		g := byte(i)
+		palette = append(palette, color.RGBA{g, g, g, 0xff})
+	}
+	iteration := 0
+	draw := func() {
+		image := image.NewPaletted(image.Rect(0, 0, Scale, Scale), palette)
+		max := int64(0)
+		for i := range verse {
+			for _, value := range verse[i] {
+				if value > max {
+					max = value
+				}
+			}
+		}
+		for i := range verse {
+			for ii, value := range verse[i] {
+				g := byte(256 * float64(value) / float64(max))
+				image.Set(ii, i, color.RGBA{g, g, g, 0xff})
+			}
+		}
+		for x := 0; x < int(float64(iteration)*Scale/float64(Iterations)); x++ {
+			for y := Scale - 2; y < Scale; y++ {
+				image.Set(x, y, color.RGBA{0xff, 0xff, 0xff, 0xff})
+			}
+		}
+		images.Image = append(images.Image, image)
+		images.Delay = append(images.Delay, 10)
+		iteration++
+	}
 	for i := range verse {
 		row := make([]int64, 64)
 		for ii := range row {
@@ -257,32 +298,42 @@ func main() {
 		fmt.Println(row)
 	}
 	fmt.Println()
+	draw()
 
 	x, y := 0, 0
-	for range 1024 {
-		xs, ys, tensor, index := make([]int, 9), make([]int, 9), NewMatrix(9, 1, make([]float64, 9)...), 0
-		for i := -1; i <= 1; i++ {
-			for ii := -1; i <= 1; i++ {
-				xs[index] = (x + i + 64) % 64
-				ys[index] = (y + ii + 64) % 64
-				tensor.Data[index] = float64(verse[xs[index]][ys[index]])
-				index++
+	for range Iterations {
+		for range 1024 {
+			xs, ys, tensor, index := make([]int, 9), make([]int, 9), NewMatrix(9, 1, make([]float64, 9)...), 0
+			for i := -1; i <= 1; i++ {
+				for ii := -1; i <= 1; i++ {
+					xs[index] = (x + ii + Scale) % Scale
+					ys[index] = (y + i + Scale) % Scale
+					tensor.Data[index] = float64(verse[xs[index]][ys[index]])
+					index++
+				}
+			}
+			adjacency := tensor.Tensor(tensor)
+			ranks := PageRank(1.0, 16, 1, adjacency)
+			total, selected := 0.0, rng.Float64()
+			for i, value := range ranks.Data {
+				total += value
+				if selected < value {
+					x, y = xs[i], ys[i]
+					verse[y][x]++
+					break
+				}
 			}
 		}
-		adjacency := tensor.Tensor(tensor)
-		ranks := PageRank(1.0, 16, 1, adjacency)
-		total, selected := 0.0, rng.Float64()
-		for i, value := range ranks.Data {
-			total += value
-			if selected < value {
-				x, y = xs[i], ys[i]
-				verse[y][x]++
-				break
-			}
-		}
+		draw()
 	}
 
-	for i := range verse {
-		fmt.Println(verse[i])
+	out, err := os.Create("verse.gif")
+	if err != nil {
+		panic(err)
+	}
+	defer out.Close()
+	err = gif.EncodeAll(out, images)
+	if err != nil {
+		panic(err)
 	}
 }
