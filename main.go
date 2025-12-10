@@ -15,6 +15,7 @@ import (
 	"image/color"
 	"image/gif"
 	"io"
+	"math"
 	"math/rand"
 	"os"
 	"strconv"
@@ -324,6 +325,22 @@ func main() {
 				}
 			}
 		}
+		mean := 0.0
+		for i := range verse {
+			for _, value := range verse[i] {
+				mean += float64(value)
+			}
+		}
+		mean /= float64(Scale * Scale)
+		stddev := 0.0
+		for i := range verse {
+			for _, value := range verse[i] {
+				diff := float64(value) - mean
+				stddev += diff * diff
+			}
+		}
+		stddev = math.Sqrt(stddev / float64(Scale*Scale))
+		fmt.Println(iteration, mean, stddev)
 		draw()
 	}
 
