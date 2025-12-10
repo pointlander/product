@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"embed"
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"io"
 	"strconv"
@@ -91,7 +92,13 @@ func Load() []Fisher {
 	return fisher
 }
 
-func main() {
+var (
+	// FlagCluster cluster mode
+	FlagCluster = flag.Bool("cluster", false, "cluster mode")
+)
+
+// ClusterMode cluster mode
+func ClusterMode() {
 	data := Load()
 	products := make([][]float64, len(data))
 	for i := range products {
@@ -227,5 +234,14 @@ func main() {
 		for k, v := range a {
 			fmt.Println(k, v)
 		}
+	}
+}
+
+func main() {
+	flag.Parse()
+
+	if *FlagCluster {
+		ClusterMode()
+		return
 	}
 }
