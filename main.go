@@ -257,7 +257,15 @@ func main() {
 	)
 
 	rng := rand.New(rand.NewSource(1))
-	verse := make([][]int64, Scale)
+	type Link struct {
+		X int
+		Y int
+	}
+	type Node struct {
+		Count int64
+		Links [9]Link
+	}
+	verse := make([][]Node, Scale)
 	images := &gif.GIF{}
 	var palette = []color.Color{}
 	for i := range 256 {
@@ -270,14 +278,14 @@ func main() {
 		max := int64(0)
 		for i := range verse {
 			for _, value := range verse[i] {
-				if value > max {
-					max = value
+				if value.Count > max {
+					max = value.Count
 				}
 			}
 		}
 		for i := range verse {
 			for ii, value := range verse[i] {
-				g := byte(256 * float64(value) / float64(max))
+				g := byte(256 * float64(value.Count) / float64(max))
 				image.Set(ii, i, color.RGBA{g, g, g, 0xff})
 			}
 		}
@@ -291,9 +299,23 @@ func main() {
 		iteration++
 	}
 	for i := range verse {
-		row := make([]int64, 64)
+		row := make([]Node, Scale)
 		for ii := range row {
-			row[ii] = int64(rng.Intn(256))
+			row[ii].Count = int64(rng.Intn(256))
+			index := 0
+			row[ii].Links[index].X = ii
+			row[ii].Links[index].Y = i
+			index++
+			for y := -1; y <= 1; y++ {
+				for x := -1; x <= 1; x++ {
+					if x == 0 && y == 0 {
+						continue
+					}
+					row[ii].Links[index].X = (x + ii + Scale) % Scale
+					row[ii].Links[index].Y = (y + i + Scale) % Scale
+					index++
+				}
+			}
 		}
 		verse[i] = row
 		fmt.Println(row)
@@ -304,14 +326,12 @@ func main() {
 	x, y := 0, 0
 	for range Iterations {
 		for range 1024 {
-			xs, ys, tensor, index := make([]int, 9), make([]int, 9), NewMatrix(9, 1, make([]float64, 9)...), 0
-			for i := -1; i <= 1; i++ {
-				for ii := -1; i <= 1; i++ {
-					xs[index] = (x + ii + Scale) % Scale
-					ys[index] = (y + i + Scale) % Scale
-					tensor.Data[index] = float64(verse[xs[index]][ys[index]])
-					index++
-				}
+			tensor, index := NewMatrix(9, 1, make([]float64, 9)...), 0
+			for i := range verse[y][x].Links {
+				x := verse[y][x].Links[i].X
+				y := verse[y][x].Links[i].Y
+				tensor.Data[index] = float64(verse[y][x].Count)
+				index++
 			}
 			adjacency := tensor.Tensor(tensor)
 			ranks := PageRank(1.0, 16, 1, adjacency)
@@ -319,8 +339,9 @@ func main() {
 			for i, value := range ranks.Data {
 				total += value
 				if selected < total {
-					x, y = xs[i], ys[i]
-					verse[y][x]++
+					x = verse[y][x].Links[i].X
+					y = verse[y][x].Links[i].Y
+					verse[y][x].Count++
 					break
 				}
 			}
@@ -328,14 +349,14 @@ func main() {
 		mean := 0.0
 		for i := range verse {
 			for _, value := range verse[i] {
-				mean += float64(value)
+				mean += float64(value.Count)
 			}
 		}
 		mean /= float64(Scale * Scale)
 		stddev := 0.0
 		for i := range verse {
 			for _, value := range verse[i] {
-				diff := float64(value) - mean
+				diff := float64(value.Count) - mean
 				stddev += diff * diff
 			}
 		}
