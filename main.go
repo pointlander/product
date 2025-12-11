@@ -374,4 +374,18 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	/*for i := range 8 {
+		for ii := range 8 {
+			for iii := range 8 {
+				tensor := NewMatrix(3, 1, make([]float64, 3)...)
+				tensor.Data[0] = float64(i)
+				tensor.Data[1] = float64(ii)
+				tensor.Data[2] = float64(iii)
+				adjacency := tensor.Tensor(tensor)
+				ranks := PageRank(1.0, 8*1024, 1, adjacency)
+				fmt.Println(i, ii, iii, ranks.Data)
+			}
+		}
+	}*/
 }
