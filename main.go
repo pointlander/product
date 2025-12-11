@@ -318,7 +318,7 @@ func main() {
 			total, selected := 0.0, rng.Float64()
 			for i, value := range ranks.Data {
 				total += value
-				if selected < value {
+				if selected < total {
 					x, y = xs[i], ys[i]
 					verse[y][x]++
 					break
