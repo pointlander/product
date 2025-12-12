@@ -252,7 +252,7 @@ func main() {
 	}
 
 	const (
-		Iterations = 128
+		Iterations = 256
 		Scale      = 64
 	)
 
@@ -326,6 +326,73 @@ func main() {
 	x, y := 0, 0
 	for range Iterations {
 		for range 1024 {
+			nx, ny, na, nb := rng.Intn(Scale), rng.Intn(Scale), rng.Intn(8), rng.Intn(8)
+			ea, eb := 0.0, 0.0
+			{
+				tensor, index := NewMatrix(9, 1, make([]float64, 9)...), 0
+				for i := range verse[y][x].Links {
+					x := verse[y][x].Links[i].X
+					y := verse[y][x].Links[i].Y
+					tensor.Data[index] = float64(verse[y][x].Count)
+					index++
+				}
+				adjacency := tensor.Tensor(tensor)
+				ranks := PageRank(1.0, 16, 1, adjacency)
+				for _, value := range ranks.Data {
+					ea += value * math.Log2(value)
+				}
+				ea = -ea
+			}
+			{
+				tensor, index := NewMatrix(9, 1, make([]float64, 9)...), 0
+				for i := range verse[ny][nx].Links {
+					x := verse[ny][nx].Links[i].X
+					y := verse[ny][nx].Links[i].Y
+					tensor.Data[index] = float64(verse[y][x].Count)
+					index++
+				}
+				adjacency := tensor.Tensor(tensor)
+				ranks := PageRank(1.0, 16, 1, adjacency)
+				for _, value := range ranks.Data {
+					eb += value * math.Log2(value)
+				}
+				eb = -eb
+			}
+			verse[y][x].Links[na+1], verse[ny][nx].Links[nb+1] = verse[ny][nx].Links[nb+1], verse[y][x].Links[na+1]
+			eea, eeb := 0.0, 0.0
+			{
+				tensor, index := NewMatrix(9, 1, make([]float64, 9)...), 0
+				for i := range verse[y][x].Links {
+					x := verse[y][x].Links[i].X
+					y := verse[y][x].Links[i].Y
+					tensor.Data[index] = float64(verse[y][x].Count)
+					index++
+				}
+				adjacency := tensor.Tensor(tensor)
+				ranks := PageRank(1.0, 16, 1, adjacency)
+				for _, value := range ranks.Data {
+					eea += value * math.Log2(value)
+				}
+				eea = -eea
+			}
+			{
+				tensor, index := NewMatrix(9, 1, make([]float64, 9)...), 0
+				for i := range verse[ny][nx].Links {
+					x := verse[ny][nx].Links[i].X
+					y := verse[ny][nx].Links[i].Y
+					tensor.Data[index] = float64(verse[y][x].Count)
+					index++
+				}
+				adjacency := tensor.Tensor(tensor)
+				ranks := PageRank(1.0, 16, 1, adjacency)
+				for _, value := range ranks.Data {
+					eeb += value * math.Log2(value)
+				}
+				eeb = -eeb
+			}
+			if eea < ea || eeb < eb {
+				verse[y][x].Links[na+1], verse[ny][nx].Links[nb+1] = verse[ny][nx].Links[nb+1], verse[y][x].Links[na+1]
+			}
 			tensor, index := NewMatrix(9, 1, make([]float64, 9)...), 0
 			for i := range verse[y][x].Links {
 				x := verse[y][x].Links[i].X
